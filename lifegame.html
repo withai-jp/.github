@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<title>AI開発を目指す初心者</title>
+
+<link href="static/css/style.css" rel="stylesheet">
+<link href="static/css/prism.css" rel="stylesheet">
+</head>
+
+
+<body>
+
+  <header>
+  	<div class="site">
+  		<span class="home-icon"></span>
+      <img src="static/images/Header03.jpg"
+        alt="ホーム" border="0" />
+  	</div>
+
+  	<nav class="menu">
+  	<ul>
+  		<li><a href="index.html">HOME</a></li>
+  		<li><a href="prof.html">PROFILE</a></li>
+  		<li><a href="prog.html">PROGRAM</a></li>
+  		<li><a href="music.html">MUSIC</a></li>
+  	</ul>
+  	</nav>
+  </header>
+
+
+  <div id="contents">
+  	<div id="main2">
+  			<h3>ライフゲーム</h3>
+        <ul>
+          <li>
+  				<h4>概要</h4>
+            <div align="center"><img src="static/images/lifegame.png" alt="lifegame"></div>
+            <ul>
+              <li>
+                標準ルールのライフゲーム。
+              </li>
+              <li>
+                左クリックでセルを描画、右クリックでセルを削除。
+              </li>
+              <li>
+                "start"ボタンで世代の自動進行が開始、"stop"ボタンで停止。
+              </li>
+              <li>
+                "random"ボタンでセルのランダム再配置、"clear"ボタンですべてのセルを削除。
+              </li>
+            </ul>
+  				</li>
+
+          <li>
+  				<h4>課題</h4>
+
+  				  <p>とくに問題はなく作成できた。
+            </p>
+            <p>
+              Tkinterのボタンウィジェットに下手なコマンドを入れると
+              ループになりかねないので注意
+            </p>
+            <p>
+              文字を入力すれば、ビットマップフォントにしてキャンバスに描画できるようにすると面白いかも？<br>
+              フォントの仕様を調べてみて、後日やってみたい
+          </li>
+
+          <li>
+          <h4>ソースコード</h4>
+
+<pre><code class="language-python">
+
+  # -*- coding:utf-8 -*-
+
+  from random import randint
+  import tkinter as tk
+  # 以下3つの値は変更すれば、ゲームの描画サイズを変えれます。
+  CELLSIZE = 20
+  ROWS = 30
+  COLS = 40
+
+  STOP_FIG = True
+
+  root = tk.Tk()
+  root.title("LifeGame")
+  cv = tk.Canvas(root, width = CELLSIZE * COLS, height = CELLSIZE * ROWS)
+  cv.pack()
+
+  data = []
+  for y in range(0, ROWS):
+      data.append([(randint(0, 9) == 0) for x in range(0, COLS)])
+
+
+
+  def random_cell():
+      data.clear()
+      for y in range(0, ROWS):
+          data.append([(randint(0, 9) == 0) for x in range(0, COLS)])
+      draw_cell()
+
+  def clear_cell():
+      data.clear()
+      for y in range(0, ROWS):
+          data.append([False for x in range(0, COLS)])
+      draw_cell()
+
+
+  # データを元に描画
+  def draw_cell():
+      cv.delete("all")
+      for y in range(ROWS):
+          y1 = y * CELLSIZE
+          y2 = y1 + CELLSIZE
+          for x in range(COLS):
+              x1 = x * CELLSIZE
+              x2 = x1 + CELLSIZE
+              tf = data[y][x]
+
+              if tf == 0: continue
+              cv.create_rectangle(x1, y1, x2, y2,
+                  fill = "gray", outline = "black", width = 5)
+
+
+  # ライフゲームの仕様
+  def count_cell(x, y):
+
+      count = 0
+      around = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
+
+      for a in around:
+          ax = x + a[1]
+          ay = y + a[0]
+
+          # 枠の端は逆側に繋がるように設定
+          if ax == -1:
+              ax = COLS -1
+          elif ax == COLS:
+              ax = 0
+          if ay == -1:
+              ay = ROWS -1
+          elif ay == ROWS:
+              ay = 0
+
+          if data[ay][ax]:
+              count += 1
+
+      if data[y][x]:
+          if count == 2 or count == 3:
+              return True
+          else: return False
+      else:
+          if count == 3:
+              return True
+          else: return False
+
+
+  # 次世代のデータを作る
+  def next_gen():
+      global data
+      next_data = []
+      for y in range(0, ROWS):
+          next_data.append([count_cell(x, y) for x in range(0, COLS)])
+      data = next_data
+
+
+  # 左クリックでCellを追加
+  def dragged_l(event):
+      nowx = event.x // CELLSIZE
+      nowy = event.y // CELLSIZE
+      # 範囲外（ボタンウィジェットの行とか)でのエラー回避
+      try:
+          data[nowy][nowx] = True
+          draw_cell()
+      except:
+          pass
+
+  # 右クリックでCellを消去
+  def dragged_r(event):
+      nowx = event.x // CELLSIZE
+      nowy = event.y // CELLSIZE
+      try:
+          data[nowy][nowx] = False
+          draw_cell()
+      except:
+          pass
+
+  def gen_start():
+      global STOP_FIG
+      STOP_FIG = False
+      gen_loop()
+
+  def gen_loop(looptime = 500):
+      if not STOP_FIG:
+          next_gen()
+          draw_cell()
+          root.after(looptime, gen_loop)
+
+  def gen_stop():
+      global STOP_FIG
+      STOP_FIG = True
+
+  """
+  tkinterのボタンは読み込み時コマンド実行するので
+  ループするようなWhileやTk.afterループを組み込むと動かない
+  STOP_FIGの真偽でループの稼働をスイッチ
+  """
+
+  cv.bind("<ButtonPress-3>", dragged_r)
+  cv.bind("<ButtonPress-1>", dragged_l)
+  cv.bind("<B1-Motion>", dragged_l)
+  cv.bind("<B3-Motion>", dragged_r)
+
+  clear_button = tk.Button(root, text = "clear", command = clear_cell)
+  clear_button.pack(side = "right")
+  random_button = tk.Button(root, text = "random", command = random_cell)
+  random_button.pack(side = "right")
+  start_button = tk.Button(root, text = "start", command = gen_start)
+  start_button.pack(side = "right")
+  stop_button = tk.Button(root, text = "stop", command = gen_stop)
+  stop_button.pack(side = "right")
+
+  draw_cell()
+  root.mainloop()
+
+
+</code></pre>
+
+
+          </li>
+      </div><!-- /#main -->
+
+
+
+    </div><!-- /#contents -->
+
+    <footer>
+      <div class="foot">
+    		<ul>
+    			<li><a href="index.html">home</a></li>
+    			<li><a href="prof.html">profile</a></li>
+    			<li><a href="prog.html">program</a></li>
+    			<li><a href="music.html">music</a></li>
+    			<li><a href="kouzi.html">contact</a></li>
+    		</ul>
+    	</div><!-- /.footmenu -->
+    </footer>
+
+    <script src="static/js/prism.js"></script>
+</body>
